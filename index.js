@@ -4,7 +4,7 @@ const { default: ForEach } = require('apr-for-each');
 const Intercept = require('apr-intercept');
 const isRelativeUrl = require('is-relative-url');
 const { readFile, exists } = require('mz/fs');
-const { dirname, resolve, basename, extname, join } = require('path');
+const { dirname, resolve, basename, extname, join, sep } = require('path');
 const revHash = require('rev-hash');
 const UniqBy = require('lodash.uniqby');
 
@@ -32,6 +32,8 @@ function defaultMakeNewUrlFn({ filename, staticPath }) {
   return resolve('/', staticPath, filename);
 }
 
+const slashFinder = /[\\/]/g;
+
 module.exports = (opts = {}) => {
   const {
     destinationDir,
@@ -44,16 +46,21 @@ module.exports = (opts = {}) => {
     const assets = [];
 
     const handleUrl = async (url) => {
-      if (!isRelativeUrl(url)) {
+      const platformNormalizedUrl = url.replace(slashFinder, sep);
+      if (!isRelativeUrl(platformNormalizedUrl)) {
         return;
       }
 
-      const ext = extname(url);
+      const ext = extname(platformNormalizedUrl);
       if (!ext || ignoreFileExtensions.includes(ext)) {
         return;
       }
 
-      const fullpath = resolve(cwd, path ? dirname(path) : '', url);
+      const fullpath = resolve(
+        cwd,
+        path ? dirname(path) : '',
+        platformNormalizedUrl,
+      );
       if (!(await exists(fullpath))) {
         return;
       }
